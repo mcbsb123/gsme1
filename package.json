@@ -1,0 +1,14 @@
+{
+  "name": "arena-wheels-3d-root",
+  "version": "1.0.0",
+  "description": "Arena Wheels 3D Game & Server Root",
+  "main": "ArenaWheelsServer/server.js",
+  "scripts": {
+    "postinstall": "cd ArenaWheelsServer && npm install",
+    "start": "node ArenaWheelsServer/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}

@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta name="theme-color" content="#ff5500" />
+    <meta name="description" content="Arena Wheels CTR - Level 2 Edition (Crash Team Racing WebGL Multiplayer)" />
+    <title>Arena Wheels CTR - Level 2 Edition</title>
+
+    <!-- Google Fonts Cairo -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <link rel="stylesheet" href="style.css?v=9.0" />
+
+    <!-- Three.js & Post-Processing Scripts (r128) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+
+    <!-- Socket.io Client -->
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+</head>
+<body>
+    <!-- Start Screen / CTR Custom Garage & Online Matchmaking Overlay -->
+    <div id="start-screen" class="overlay-screen">
+        <div class="menu-card glass-panel">
+            <div class="top-header-row">
+                <div class="badge-tag">ARENA WHEELS CTR • LEVEL 2 EDITION v9.0</div>
+                <div class="career-stats-pill" id="career-stats-pill">
+                    🏆 الفوز: <span id="career-wins-val" class="ltr-text">0</span> | ⏱️ أفضل دورة: <span id="career-best-lap" class="ltr-text">--:--</span>
+                </div>
+            </div>
+            <h1 class="game-title" dir="ltr">ARENA WHEELS <span>CTR</span></h1>
+
+            <!-- Mandatory Player Name + Online Status Row -->
+            <div class="mandatory-name-box">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <label for="username-input" style="margin:0;">👤 اسم المتسابق (إجباري): <span style="color:#ff5500;">*</span></label>
+                    <span id="menu-online-pill" class="conn-pill">وضع اللعب السريع جاهز 🟢</span>
+                </div>
+                <input type="text" id="username-input" value="" maxlength="16" placeholder="اكتب اسمك القتالي هنا..." required />
+                <div id="name-error-msg" class="name-error-msg" style="display: none;">⚠️ يرجى إدخال اسم اللاعب أولاً قبل بدء السباق!</div>
+            </div>
+
+            <!-- Online Multiplayer & Room Selection Box -->
+            <div class="online-matchmaking-box">
+                <div class="form-grid-3col">
+                    <div class="form-row">
+                        <label for="lobby-option-select">🌐 نظام اللعب:</label>
+                        <select id="lobby-option-select">
+                            <option value="bot" selected>🤖 لعب سريع فوري (مع البوتات + الشبح)</option>
+                            <option value="online">🌐 غرفة أونلاين مع الأصدقاء</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <label for="room-code-input">🔑 كود الغرفة (أو رابط دعوة):</label>
+                        <div class="invite-input-group">
+                            <input type="text" id="room-code-input" value="" maxlength="12" placeholder="مثلاً CTR99..." />
+                            <button type="button" id="btn-copy-invite" class="copy-invite-btn" title="نسخ رابط دعوة مباشر للأصدقاء">🔗 دعوة</button>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <label for="fill-bots-select">🤖 البوتات في الغرفة:</label>
+                        <select id="fill-bots-select">
+                            <option value="fill" selected>إكمال الأماكن الفارغة ببوتات</option>
+                            <option value="none">لاعبون حقيقيون فقط</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="invite-copied-msg" class="lobby-timer-note" style="display: none; margin-top: 4px; margin-bottom: 0;"></div>
+                <div id="active-rooms-bar" class="active-rooms-bar">
+                    <span>الغرف النشطة أونلاين:</span>
+                    <div id="active-rooms-list" class="active-rooms-list">اختر "غرفة أونلاين" أو اضغط "🔗 دعوة" لمشاركة رابط غرفتك</div>
+                </div>
+            </div>
+
+            <!-- 1. Car Chassis / Type Selector + Live Stat Bars -->
+            <div class="skin-section-label">
+                1️⃣ اختر مركبتك القتالية (<span id="stat-class-badge" style="color:#00ff88;">متوازن - Balanced</span>):
+            </div>
+            <div class="skin-cards-grid" id="skin-cards-grid">
+                <div class="skin-card active" data-skin="interceptor">
+                    <div class="skin-dot" style="background: linear-gradient(135deg, #ff5500, #ffcc00);"></div>
+                    <div class="skin-name">كارت كراش الكلاسيكي</div>
+                    <div class="skin-class-tag">متوازن (Balanced)</div>
+                </div>
+                <div class="skin-card" data-skin="bruiser">
+                    <div class="skin-dot" style="background: linear-gradient(135deg, #ff8800, #442200);"></div>
+                    <div class="skin-name">مدرعة تايني الثقيلة</div>
+                    <div class="skin-class-tag">سرعة ووزن ثقيل</div>
+                </div>
+                <div class="skin-card" data-skin="hypercar">
+                    <div class="skin-dot" style="background: linear-gradient(135deg, #00f0ff, #0055ff);"></div>
+                    <div class="skin-name">تيربو كوكو السريع</div>
+                    <div class="skin-class-tag">تسارع ودريفت فوري</div>
+                </div>
+                <div class="skin-card" data-skin="enforcer">
+                    <div class="skin-dot" style="background: linear-gradient(135deg, #ff1133, #222222);"></div>
+                    <div class="skin-name">مركبة كورتكس الحربية</div>
+                    <div class="skin-class-tag">مناورة وهجوم معزز</div>
+                </div>
+                <div class="skin-card" data-skin="phantom">
+                    <div class="skin-dot" style="background: linear-gradient(135deg, #00ff88, #b026ff);"></div>
+                    <div class="skin-name">مركبة أوكسايد الفضائية</div>
+                    <div class="skin-class-tag">انسيابية وثبات عالي</div>
+                </div>
+            </div>
+            <input type="hidden" id="skin-select" value="interceptor" />
+
+            <!-- Vehicle Live Physics Stat Bars -->
+            <div class="vehicle-stats-panel" id="vehicle-stats-panel">
+                <div class="vstat-item">
+                    <span>السرعة</span>
+                    <div class="vstat-bar"><div class="vstat-fill" id="stat-speed-bar" style="width: 82%;"></div></div>
+                </div>
+                <div class="vstat-item">
+                    <span>التسارع</span>
+                    <div class="vstat-bar"><div class="vstat-fill" id="stat-accel-bar" style="width: 82%;"></div></div>
+                </div>
+                <div class="vstat-item">
+                    <span>الالتفاف</span>
+                    <div class="vstat-bar"><div class="vstat-fill" id="stat-turn-bar" style="width: 84%;"></div></div>
+                </div>
+                <div class="vstat-item">
+                    <span>الوزن/الدرع</span>
+                    <div class="vstat-bar"><div class="vstat-fill" id="stat-weight-bar" style="width: 75%;"></div></div>
+                </div>
+            </div>
+
+            <!-- 2. Vehicle Customization Parts (Color, Wheels, Spoiler) -->
+            <div class="form-grid-3col">
+                <div class="form-row">
+                    <label for="paint-color-select">🎨 لون المركبة:</label>
+                    <select id="paint-color-select">
+                        <option value="0xff5500">🟠 برتقالي كراش الناري</option>
+                        <option value="0xff0055">🔴 أحمر قرمزي</option>
+                        <option value="0x00f0ff">🔵 أزرق سماوي</option>
+                        <option value="0x00ff88">🟢 أخضر نيترو مشع</option>
+                        <option value="0xb026ff">🟣 بنفسجي ملكي</option>
+                        <option value="0x1e2436">⚫ أسود كربوني</option>
+                        <option value="0xeef6ff">⚪ أبيض ثلجي</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <label for="wheel-style-select">🛞 الإطارات:</label>
+                    <select id="wheel-style-select">
+                        <option value="standard">🛞 إطارات كارت قياسية</option>
+                        <option value="monster">🚜 إطارات عملاقة (Monster)</option>
+                        <option value="hexa">🛡️ سداسية الدفع (6 عجلات)</option>
+                        <option value="cyber_glow">💠 إطارات نيون مضيئة</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <label for="spoiler-style-select">🏎️ الجناح الخلفي:</label>
+                    <select id="spoiler-style-select">
+                        <option value="gt_wing">🏎️ جناح سباق عالي</option>
+                        <option value="twin_fin">🦈 زعانف مزدوجة</option>
+                        <option value="heavy_rack">🚀 محرك نفاث خلفي</option>
+                        <option value="none">⚡ انسيابي بدون جناح</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 3. Match & CTR Track Maps (6 Rich Maps with Curves & Shortcuts!) -->
+            <div class="form-grid-3col">
+                <div class="form-row">
+                    <label for="mode-select">طور اللعب:</label>
+                    <select id="mode-select">
+                        <option value="race" selected>🏁 سباق كراش CTR (3 دورات + شبح + مختصرات)</option>
+                        <option value="ffa">⚔️ حلبة القتال الحر (صناديق أسلحة)</option>
+                        <option value="2v2">🤝 معركة فرق (2 ضد 2)</option>
+                        <option value="3v3">🛡️ معركة فرق (3 ضد 3)</option>
+                        <option value="4v4">🔥 معركة فرق (4 ضد 4)</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <label for="map-select">🗺️ اختر الخريطة / المضمار (6 خرائط):</label>
+                    <select id="map-select">
+                        <option value="crash_cove">🏝️ شاطئ جزيرة كراش (Crash Cove)</option>
+                        <option value="pyramid_desert">🏜️ وادي الأهرامات الصحراوي (Papu Pyramid)</option>
+                        <option value="polar_pass">❄️ الممر الجليدي المتجمد (Polar Pass)</option>
+                        <option value="volcano_mines">🌋 مناجم الحمم البركانية (Dragon Mines)</option>
+                        <option value="cyber_station">🌌 محطة أوكسايد النيونية (Oxide Station)</option>
+                        <option value="sky_castle">🏰 قلعة السماء المعلقة (Cortex Castle)</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <label for="difficulty-select">مستوى ذكاء البوتات:</label>
+                    <select id="difficulty-select">
+                        <option value="easy">🟢 سهل</option>
+                        <option value="medium" selected>🟡 متوسط</option>
+                        <option value="hard">🔴 صعب (يستخدم المختصرات!)</option>
+                    </select>
+                </div>
+            </div>
+            <input type="hidden" id="control-select-start" value="joystick" />
+
+            <button id="connect-btn" class="primary-btn">انطلاق إلى المضمار 🏁</button>
+        </div>
+    </div>
+
+    <!-- Online Multiplayer Lobby Screen Overlay -->
+    <div id="lobby-screen" class="overlay-screen" style="display: none;">
+        <div class="menu-card glass-panel" style="max-width: 480px;">
+            <h2 class="section-title">🌐 غرفة المتسابقين أونلاين</h2>
+            <p class="subtitle" id="lobby-room-title" style="margin-bottom: 8px;">الغرفة: PUBLIC-RACE</p>
+
+            <div id="lobby-count" class="lobby-counter">
+                اللاعبون المتصلون في الغرفة: <span id="lobby-player-num" class="ltr-text">1</span> 👥
+            </div>
+
+            <div id="lobby-player-list" class="lobby-list"></div>
+
+            <div id="lobby-bot-timer" class="lobby-timer-note">
+                شارك رابط الدعوة مع أصدقائك أو اضغط على بدء السباق فوراً!
+            </div>
+
+            <div class="modal-actions-row">
+                <button type="button" id="btn-start-online-now" class="primary-btn" style="flex: 2;">بدء السباق الآن 🏁</button>
+                <button type="button" id="btn-lobby-copy-link" class="copy-invite-btn" style="padding: 9px 14px;">🔗 نسخ الرابط</button>
+                <button type="button" id="btn-cancel-lobby" class="secondary-danger-btn" style="flex: 1;">رجوع 🏠</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- In-Game Settings Modal -->
+    <div id="settings-modal" class="overlay-screen" style="display: none;">
+        <div class="menu-card glass-panel" style="max-width: 420px;">
+            <h2 class="section-title">⚙️ إعدادات التحكم واللعبة</h2>
+
+            <div class="form-row">
+                <label for="settings-control-select">نظام التحكم بالمركبة:</label>
+                <select id="settings-control-select">
+                    <option value="joystick">🕹️ عصا التحكم الافتراضية (الافتراضي)</option>
+                    <option value="steering">🎡 عجلة القيادة الدوارة (Steering Wheel)</option>
+                    <option value="gyro">📱 الجيروسكوب / إمالة الهاتف</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <label for="settings-sensitivity">حساسية الالتفاف: <span id="sens-val" class="ltr-text">100%</span></label>
+                <input type="range" id="settings-sensitivity" min="50" max="160" value="100" />
+            </div>
+
+            <div class="form-grid-2col">
+                <div class="form-row">
+                    <label for="settings-bloom">توهج الإضاءة (Bloom):</label>
+                    <select id="settings-bloom">
+                        <option value="on">✨ مفعّل (مع ضبط FPS تلقائي)</option>
+                        <option value="off">⚡ معطّل (أداء أسرع)</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <label for="settings-shake">اهتزاز الكاميرا:</label>
+                    <select id="settings-shake">
+                        <option value="off" selected>🔒 إيقاف</option>
+                        <option value="on">💥 تفعيل</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <label for="settings-sound">المؤثرات الصوتية:</label>
+                    <select id="settings-sound">
+                        <option value="on">🔊 تشغيل</option>
+                        <option value="off">🔇 كتم</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <label for="settings-difficulty">صعوبة البوتات:</label>
+                    <select id="settings-difficulty">
+                        <option value="easy">🟢 سهل</option>
+                        <option value="medium">🟡 متوسط</option>
+                        <option value="hard">🔴 صعب</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="modal-actions-row">
+                <button type="button" id="btn-resume-game" class="primary-btn" style="flex: 1;">متابعة اللعب ▶️</button>
+                <button type="button" id="btn-quit-to-menu" class="secondary-danger-btn" style="flex: 1;">القائمة الرئيسية 🏠</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Match Result Screen Overlay (With Top-3 Podium & Instant New Race Button!) -->
+    <div id="result-screen" class="overlay-screen" style="display: none;">
+        <div class="menu-card glass-panel" style="max-width: 480px;">
+            <h2 id="result-title" class="result-heading">🏆 منصة التتويج النهائية!</h2>
+            <p id="result-subtitle" class="subtitle" style="margin-bottom: 8px;">إحصائيات السباق وأفضل الأزمنة:</p>
+
+            <!-- Top 3 Podium Visual -->
+            <div id="podium-container" class="podium-container"></div>
+
+            <div id="leaderboard-list" class="result-leaderboard"></div>
+
+            <div class="modal-actions-row">
+                <button type="button" id="btn-rematch" class="primary-btn" style="flex: 1.4;">سباق جديد 🔄 (إعادة السباق فوراً)</button>
+                <button type="button" id="restart-btn" class="secondary-danger-btn" style="flex: 1;">القائمة الرئيسية 🏠</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Countdown Intro Screen (CTR Traffic Light + Starting Boost Prompt!) -->
+    <div id="countdown-screen">
+        <div class="ctr-lights-box">
+            <div class="ctr-light" id="ctr-light-1"></div>
+            <div class="ctr-light" id="ctr-light-2"></div>
+            <div class="ctr-light" id="ctr-light-3"></div>
+        </div>
+        <div id="countdown-number" class="ltr-text">3</div>
+        <div id="countdown-text">اضغط تسارع عند الإشارة الخضراء لانطلاقة صاروخية! 🚀</div>
+    </div>
+
+    <!-- 3D Floating Player Nameplates & Health Bars Container -->
+    <div id="nameplates-container"></div>
+
+    <!-- Floating 3D Damage & Pickup Numbers Layer -->
+    <div id="floating-damage-container"></div>
+
+    <!-- Screen Damage Vignette Flash -->
+    <div id="damage-flash"></div>
+
+    <!-- ================================================================== -->
+    <!-- ULTRA-CLEAN CTR LEVEL 2 MOBILE HUD OVERLAY                         -->
+    <!-- ================================================================== -->
+    <div id="hud-overlay">
+        <!-- Ultra-Slim Top Bar (Flexible & Non-Overlapping on Small Screens) -->
+        <div class="hud-top">
+            <!-- Top-Right (in RTL): Icon-Only Menu/Settings + Vitals + Wumpa Fruit Counter -->
+            <div class="hud-top-right">
+                <button type="button" id="btn-home-hud" class="hud-icon-btn home-icon" title="القائمة الرئيسية">🏠</button>
+                <button type="button" id="btn-settings-hud" class="hud-icon-btn" title="الإعدادات">⚙️</button>
+
+                <div class="compact-vitals-strip glass-hud">
+                    <span id="status-dot" class="online-dot" title="حالة الاتصال"></span>
+                    <div class="micro-bars">
+                        <div class="micro-bar-track" title="الصحة">
+                            <div class="micro-bar-fill hp-fill" id="health-bar"></div>
+                        </div>
+                        <div class="micro-bar-track" title="الدرع">
+                            <div class="micro-bar-fill shield-fill" id="shield-bar"></div>
+                        </div>
+                    </div>
+                    <!-- Wumpa Fruit Counter (0 to 10 -> Juiced-Up!) -->
+                    <span id="wumpa-badge" class="wumpa-pill ltr-text" title="فاكهة الـ Wumpa (عند 10 تترقى الأسلحة والسرعة!)">🍎 <span id="wumpa-count-val">0/10</span></span>
+                    <span id="turbo-active-icon" class="turbo-mini-tag" style="display:none;">⚡</span>
+                </div>
+            </div>
+
+            <!-- Top-Center: Single-Line Slim Pill -->
+            <div class="hud-top-center">
+                <div class="slim-match-pill glass-hud">
+                    <span id="team-score-inline" class="team-score-inline" style="display: none;">
+                        <b class="c-blue" id="score-blue">0</b> 🔵 - 🔴 <b class="c-red" id="score-red">0</b>
+                        <span class="pill-sep">|</span>
+                    </span>
+                    <span id="timer-badge" class="slim-timer ltr-text">🏁 1/3</span>
+                    <span class="pill-sep">|</span>
+                    <span id="mode-hud-badge" class="slim-stats">المركز 1/4</span>
+                </div>
+
+                <!-- Slim Race Progress Bar -->
+                <div id="race-progress-card" class="slim-race-bar glass-hud" style="display: none;">
+                    <div class="slim-race-fill" id="race-prog-fill"></div>
+                    <span id="race-rank-label" class="slim-race-text">الدورة 1/3 • انتبه للمنحنيات والمختصرات ⏩</span>
+                </div>
+
+                <!-- TNT Attached Warning Banner (Jump/Drift 3 times to shake off!) -->
+                <div id="tnt-head-warning" class="tnt-warning-pill" style="display: none;">
+                    🧨 صندوق TNT فوقك (<span id="tnt-countdown-num">3</span>)! اضغط دريفت/قفز متكرر للتخلص منه!
+                </div>
+
+                <div id="kill-feed" class="kill-feed-container"></div>
+            </div>
+
+            <!-- Top-Left (in RTL): Compact Radar (Auto-shrinks to 65px on <480px screens) + Trophy Button -->
+            <div class="hud-top-left">
+                <div class="top-left-row">
+                    <button type="button" id="btn-toggle-lb" class="hud-icon-btn lb-toggle-btn" title="إظهار/إخفاء المتصدرين">🏆</button>
+                    <div class="minimap-wrapper glass-hud" id="minimap-container">
+                        <canvas id="minimap-canvas" width="90" height="90"></canvas>
+                    </div>
+                </div>
+
+                <div class="live-leaderboard glass-hud" id="live-leaderboard" style="display: none;">
+                    <div class="lb-title">
+                        <span>المتصدرون</span>
+                        <span class="lb-cols-hint">⚔️ / 💀</span>
+                    </div>
+                    <div id="live-lb-rows" class="lb-rows"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom HUD Controls: Large Left Joystick + 3-Stage CTR Drift Meter + Right Combat/Drift Cluster -->
+        <div class="hud-bottom" dir="ltr">
+            <!-- Left Thumb Zone: Large Virtual Joystick -->
+            <div class="left-control-area">
+                <div class="joystick-container" id="joystick-zone">
+                    <div class="joystick-base" id="joystick-base">
+                        <div class="joystick-arrow up">▲</div>
+                        <div class="joystick-arrow down">▼</div>
+                        <div class="joystick-arrow left">◀</div>
+                        <div class="joystick-arrow right">▶</div>
+                        <div class="joystick-stick" id="joystick-stick"></div>
+                    </div>
+                </div>
+
+                <!-- Optional Steering Wheel Mode -->
+                <div class="steering-wheel-container" id="steering-zone" style="display: none;">
+                    <div class="steering-wheel-graphic" id="steering-wheel-el">
+                        <div class="wheel-ring"></div>
+                        <div class="wheel-spoke spoke-left"></div>
+                        <div class="wheel-spoke spoke-right"></div>
+                        <div class="wheel-spoke spoke-bottom"></div>
+                        <div class="wheel-top-marker"></div>
+                        <div class="wheel-center-cap">CTR</div>
+                    </div>
+                </div>
+
+                <!-- Optional Gyro Mode -->
+                <div class="gyro-container glass-hud" id="gyro-zone" style="display: none;" dir="rtl">
+                    <div class="gyro-title">📱 جيروسكوب</div>
+                    <div class="gyro-horizon-bar">
+                        <div class="gyro-bubble" id="gyro-bubble"></div>
+                    </div>
+                    <button type="button" id="btn-calibrate-gyro" class="gyro-cal-btn">معايرة ⚖️</button>
+                </div>
+            </div>
+
+            <!-- Center Bottom: CTR 3-Stage Power-Slide Boost Gauge + Speedometer -->
+            <div class="minimal-center-footer" dir="rtl">
+                <div class="ctr-drift-meter" id="ctr-drift-meter" style="display: none;">
+                    <div class="ctr-drift-fill" id="ctr-drift-fill"></div>
+                    <span class="ctr-drift-label" id="ctr-drift-label">شحن الدريفت (1/3) ⚡</span>
+                </div>
+                <div class="minimal-speed-badge" id="speedometer">
+                    <span class="speed-num ltr-text" id="speed-display">0</span>
+                    <span class="speed-unit">كم/س</span>
+                </div>
+            </div>
+
+            <!-- Right Thumb Zone: Large Fire Button (Shows Active Weapon Icon!) + Smart Turbo/Cycle Button + Drift -->
+            <div class="action-buttons-cluster">
+                <!-- CTR Power-Slide Drift / Jump Button -->
+                <button type="button" class="action-btn drift-btn" id="btn-drift" aria-label="انزلاق دريفت وقفز">
+                    <span class="btn-icon">💨</span>
+                    <span class="btn-text">دريفت</span>
+                </button>
+
+                <!-- Smart Item Slot / Turbo Boost Trigger -->
+                <button type="button" class="action-btn weapon-circle-btn" id="btn-weapon-wheel" aria-label="تبديل السلاح أو تفعيل تيربو جاهز">
+                    <svg class="weapon-hold-svg" viewBox="0 0 64 64">
+                        <circle class="weapon-hold-bg" cx="32" cy="32" r="29"></circle>
+                        <circle class="weapon-hold-ring" id="weapon-hold-ring" cx="32" cy="32" r="29"></circle>
+                    </svg>
+                    <span class="btn-icon" id="cur-weapon-icon">⚡</span>
+                    <span class="btn-text" id="cur-weapon-name">تيربو جاهز</span>
+                    <span class="weapon-ammo-pill ltr-text" id="cur-weapon-ammo">FOV</span>
+                </button>
+
+                <!-- Large Primary Fire Button: Displays Active Weapon Icon & 1-Second Roulette Spin! -->
+                <button type="button" class="action-btn shoot-btn" id="btn-shoot" aria-label="إطلاق السلاح الحالي">
+                    <span class="btn-icon" id="shoot-btn-icon">🔥</span>
+                    <span class="btn-text" id="shoot-btn-text">إطلاق</span>
+                    <span class="shoot-ammo-badge ltr-text" id="shoot-btn-ammo" style="display: none;">0</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3D WebGL Viewport -->
+    <div id="canvas-container"></div>
+
+    <script src="networkConfig.js?v=9.0"></script>
+    <script src="game.js?v=9.0"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js?v=9.0', { updateViaCache: 'none' })
+                    .then(reg => {
+                        reg.update();
+                        reg.addEventListener('updatefound', () => {
+                            const newWorker = reg.installing;
+                            if (newWorker) {
+                                newWorker.addEventListener('statechange', () => {
+                                    if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+                                        window.location.reload();
+                                    }
+                                });
+                            }
+                        });
+                    })
+                    .catch(err => console.error('PWA SW error:', err));
+            });
+        }
+    </script>
+</body>
+</html>
